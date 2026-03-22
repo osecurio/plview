@@ -13,3 +13,7 @@
 ## How to use
 
 After building and installing, open Binary Ninja and select a partition or a raw MTK preloader binary. The binja view should say `MTK Preloader`, and there should be a header and code&data segment.
+
+## Screenshot
+
+![Demo](docs/screen.png)
