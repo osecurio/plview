@@ -9,7 +9,7 @@ use binaryninja::{
     data_buffer::DataBuffer,
     platform::Platform,
     section::Section,
-    segment::{Segment, SegmentFlags},
+    segment::Segment, symbol::{Symbol, SymbolType},
 };
 use std::ops::Range;
 use tracing::{debug, info, warn};
@@ -52,7 +52,7 @@ impl BinaryViewTypeBase for MTKPreloaderBinaryViewType {
 
         data.read_into_vec(&mut magic, offset, MTKPL_MAGIC.len());
         if magic == MTKPL_MAGIC {
-            info!("Raw Preloader is valid.");
+            debug!("Raw Preloader is valid.");
             return true;
         }
         warn!("Valid for failure!");
@@ -67,7 +67,7 @@ impl CustomBinaryViewType for MTKPreloaderBinaryViewType {
         builder: binaryninja::custom_binary_view::CustomViewBuilder<'builder, Self>,
     ) -> binaryninja::binary_view::Result<binaryninja::custom_binary_view::CustomView<'builder>>
     {
-        info!("Creating MTKPreloaderBinaryView from MTKPreloaderBinaryViewType");
+        debug!("Creating MTKPreloaderBinaryView from MTKPreloaderBinaryViewType");
 
         let bv = builder.create::<MTKPreloaderBinaryView>(data, ());
         bv
@@ -100,26 +100,6 @@ impl BinaryViewBase for MTKPreloaderBinaryView {
     }
 }
 
-pub struct SegmentMappingData {
-    mapped_addr_range: Range<u64>,
-    file_backing: Range<u64>,
-    mapped_segment_flags: SegmentFlags,
-}
-
-impl SegmentMappingData {
-    fn new(
-        mapped_addr_range: Range<u64>,
-        file_backing: Range<u64>,
-        mapped_segment_flags: SegmentFlags,
-    ) -> Self {
-        Self {
-            mapped_addr_range,
-            file_backing,
-            mapped_segment_flags,
-        }
-    }
-}
-
 pub struct MTKPreloaderBinaryView {
     inner: binaryninja::rc::Ref<BinaryView>,
     mtkpl_parser: MTKPreloaderParser,
@@ -145,109 +125,40 @@ impl MTKPreloaderBinaryView {
         self.set_default_arch(&default_arch);
         self.set_default_platform(&default_platform);
 
-        let file_offset_to_pl_header = self.mtkpl_parser.get_file_backed_start_offset();
-        let load_addr = self.mtkpl_parser.get_image_load_addr() as u64;
-        let entry_offset = self.mtkpl_parser.get_entry_point_offset() as u64;
-        let entry_addr = entry_offset + load_addr;
-        let preloader_size = self.mtkpl_parser.get_preloader_size() as usize;
-        let header_size = entry_addr - load_addr;
-        println!("header_size: {header_size:X} = {entry_addr:X} - {load_addr:X}");
-        
+        info!("{}", self.mtkpl_parser);
 
-        //let segment_data = Vec::<SegmentMappingData>::new();
+        for (_name, segment) in self.mtkpl_parser.get_segments() {
 
-        // Load Base (Header)
-        info!("Load Address: 0x{:X}", load_addr);
-        let seg_flags = SegmentFlags::new()
-            .readable(true)
-            .contains_code(false)
-            .contains_data(false)
-            .deny_write(true)
-            .executable(true);
-        let header_segment = SegmentMappingData::new(
-            Range {
-                start: load_addr,
-                end: load_addr + header_size,
-            },
-            Range {
-                start: file_offset_to_pl_header as u64,
-                end: file_offset_to_pl_header as u64 + header_size,
-            },
-            seg_flags,
-        );
+            let new_segment = Segment::builder(segment.mapped_addr_range.clone())
+                .parent_backing(segment.file_backing.clone())
+                .is_auto(true)
+                .flags(segment.mapped_segment_flags);
 
-        let header_segment = Segment::builder(header_segment.mapped_addr_range.clone())
-            .parent_backing(header_segment.file_backing.clone())
-            .is_auto(true)
-            .flags(header_segment.mapped_segment_flags);
+            self.add_segment(new_segment);
+        }
 
-        self.add_segment(header_segment);
+        for (name, section) in self.mtkpl_parser.get_sections() {
+            let mut new_section = Section::builder(
+                section.name.clone(),
+                Range {
+                    start: section.mapped_addr_range.start,
+                    end: section.mapped_addr_range.end,
+                },
+            )
+            .is_auto(true);
 
-        let header_section = Section::builder(
-            "plhdr".to_string(),
-            Range {
-                start: load_addr,
-                end: load_addr + header_size as u64,
-            },
-        )
-        .is_auto(true);
-        self.add_section(header_section);
+            if name == ".code.data" {
+                new_section = new_section.semantics(binaryninja::section::Semantics::ReadOnlyCode);
+            }
 
-        // Load Code & Data
-        info!("Code & Data Address: 0x{:X}", entry_addr);
-
-        // Segment Flags
-        let seg_flags = SegmentFlags::new()
-            .readable(true)
-            .contains_code(true)
-            .contains_data(true)
-            .deny_write(false)
-            .executable(true)
-            .writable(true);
-
-        let code_data_map_start = entry_addr;
-        let code_data_map_end = (preloader_size as u64 - entry_offset) + entry_addr;
-        let code_data_fb_start = file_offset_to_pl_header as u64 + entry_offset;
-        let code_data_fb_end = (file_offset_to_pl_header + preloader_size) as u64;
-
-        // Segment Mapping Data
-        let code_data_segment = SegmentMappingData::new(
-            Range {
-                start: code_data_map_start,
-                end: code_data_map_end,
-            },
-            Range {
-                start: code_data_fb_start,
-                end: code_data_fb_end,
-            },
-            seg_flags,
-        );
-
-        // Build Segment
-        let code_data_segment = Segment::builder(code_data_segment.mapped_addr_range.clone())
-            .parent_backing(code_data_segment.file_backing.clone())
-            .is_auto(true)
-            .flags(code_data_segment.mapped_segment_flags);
-
-        // Add Segment
-        self.add_segment(code_data_segment);
-
-        // Build Section
-        let code_data_section = Section::builder(
-            "code.data".to_string(),
-            Range {
-                start: entry_addr,
-                end: entry_addr + preloader_size as u64 - entry_offset,
-            },
-        )
-        .is_auto(true)
-        .semantics(binaryninja::section::Semantics::ReadOnlyCode);
-
-        // Add Section
-        self.add_section(code_data_section);
+            self.add_section(new_section);
+        }
 
         let entry_forced_platform = Platform::by_name("armv7").ok_or(())?;
-        self.add_user_function_with_platform(entry_addr, &entry_forced_platform);
+        let entry_point = self.get_entry_point();
+        let start_symbol = Symbol::builder(SymbolType::Function, "_start", entry_point).full_name("_start").short_name("_start").create();
+        self.add_entry_point_with_platform(entry_point, &entry_forced_platform);
+        self.define_user_symbol(&start_symbol);
 
         Ok(())
     }
