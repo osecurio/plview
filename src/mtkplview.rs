@@ -146,11 +146,17 @@ impl MTKPreloaderBinaryView {
         self.set_default_platform(&default_platform);
 
         let file_offset_to_pl_header = self.mtkpl_parser.get_file_backed_start_offset();
+        let load_addr = self.mtkpl_parser.get_image_load_addr() as u64;
+        let entry_offset = self.mtkpl_parser.get_entry_point_offset() as u64;
+        let entry_addr = entry_offset + load_addr;
+        let preloader_size = self.mtkpl_parser.get_preloader_size() as usize;
+        let header_size = entry_addr - load_addr;
+        println!("header_size: {header_size:X} = {entry_addr:X} - {load_addr:X}");
+        
 
         //let segment_data = Vec::<SegmentMappingData>::new();
 
         // Load Base (Header)
-        let load_addr = self.mtkpl_parser.get_image_load_addr() as u64;
         info!("Load Address: 0x{:X}", load_addr);
         let seg_flags = SegmentFlags::new()
             .readable(true)
@@ -161,11 +167,11 @@ impl MTKPreloaderBinaryView {
         let header_segment = SegmentMappingData::new(
             Range {
                 start: load_addr,
-                end: load_addr + 0x300,
+                end: load_addr + header_size,
             },
             Range {
                 start: file_offset_to_pl_header as u64,
-                end: file_offset_to_pl_header as u64 + 0x300,
+                end: file_offset_to_pl_header as u64 + header_size,
             },
             seg_flags,
         );
@@ -181,16 +187,13 @@ impl MTKPreloaderBinaryView {
             "plhdr".to_string(),
             Range {
                 start: load_addr,
-                end: load_addr + 0x300 as u64,
+                end: load_addr + header_size as u64,
             },
         )
         .is_auto(true);
         self.add_section(header_section);
 
         // Load Code & Data
-        let entry_offset = self.mtkpl_parser.get_entry_point_offset() as u64;
-        let entry_addr = entry_offset + load_addr;
-        let preloader_size = self.mtkpl_parser.get_preloader_size() as usize;
         info!("Code & Data Address: 0x{:X}", entry_addr);
 
         // Segment Flags
