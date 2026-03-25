@@ -9,7 +9,9 @@ use binaryninja::{
     data_buffer::DataBuffer,
     platform::Platform,
     section::Section,
-    segment::Segment, symbol::{Symbol, SymbolType},
+    segment::Segment,
+    symbol::{Symbol, SymbolType},
+    types::{MemberAccess, MemberScope, StructureBuilder, Type},
 };
 use std::ops::Range;
 use tracing::{debug, info, warn};
@@ -128,7 +130,6 @@ impl MTKPreloaderBinaryView {
         info!("{}", self.mtkpl_parser);
 
         for (_name, segment) in self.mtkpl_parser.get_segments() {
-
             let new_segment = Segment::builder(segment.mapped_addr_range.clone())
                 .parent_backing(segment.file_backing.clone())
                 .is_auto(true)
@@ -156,11 +157,64 @@ impl MTKPreloaderBinaryView {
 
         let entry_forced_platform = Platform::by_name("armv7").ok_or(())?;
         let entry_point = self.get_entry_point();
-        let start_symbol = Symbol::builder(SymbolType::Function, "_start", entry_point).full_name("_start").short_name("_start").create();
+        let start_symbol = Symbol::builder(SymbolType::Function, "_start", entry_point)
+            .full_name("_start")
+            .short_name("_start")
+            .create();
         self.add_entry_point_with_platform(entry_point, &entry_forced_platform);
         self.define_user_symbol(&start_symbol);
 
+        let header_type = self.define_mtkpl_header();
+        self.define_user_type("mtkpl_hdr", &header_type);
+        let sym = Symbol::builder(
+            SymbolType::Data,
+            "mtkpl_hdr",
+            self.mtkpl_parser.get_image_load_addr() as u64,
+        )
+        .create();
+        let header_type = self.type_by_name("mtkpl_hdr");
+        self.define_auto_symbol_with_type(
+            &sym,
+            &entry_forced_platform,
+            Some(&*header_type.unwrap()),
+        )
+        .unwrap();
+
         Ok(())
+    }
+
+    fn define_mtkpl_header(&self) -> binaryninja::rc::Ref<binaryninja::types::Type> {
+        let magic = Type::named_int(4, false, "magic");
+        let unk0 = Type::array(&Type::char(), 0x18);
+        let unk0 = Type::named_type_from_type("unk0", &unk0);
+        let load_addr = Type::named_int(4, false, "load_addr");
+        let size = Type::named_int(4, false, "size");
+        let unk1 = Type::array(&Type::char(), 0x4);
+        let unk1 = Type::named_type_from_type("unk1", &unk1);
+        let entry_offset = Type::named_int(4, false, "entry_offset");
+        let emi_data_len = Type::named_int(4, false, "emi_data_len");
+        let struct_outline = [
+            ("magic", magic),
+            ("unk0", unk0),
+            ("load_addr", load_addr),
+            ("size", size),
+            ("unk1", unk1),
+            ("entry_offset", entry_offset),
+            ("emi_data_len", emi_data_len),
+        ];
+
+        let mut mtkpl_header_struct = StructureBuilder::new();
+
+        for struct_member in struct_outline {
+            mtkpl_header_struct.append(
+                &struct_member.1,
+                struct_member.0,
+                MemberAccess::PublicAccess,
+                MemberScope::NoScope,
+            );
+        }
+
+        Type::structure(&mtkpl_header_struct.finalize())
     }
 
     fn get_entry_point(&self) -> u64 {

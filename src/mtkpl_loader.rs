@@ -3,11 +3,6 @@ use std::{collections::HashMap, fmt, ops::Range};
 use binaryninja::{data_buffer::DataBuffer, segment::SegmentFlags};
 use tracing::debug;
 
-
-// EMI (MediaTek External Memory Interface)
-//pub const EMMC_BOOT_MTKPL_OFFSET: u64 = 0x800;
-//pub const EMMC_BOOT_MAGIC: &'static [u8; 9] = b"EMMC_BOOT";
-
 pub const MTKPL_MAGIC: &'static [u8; 8] = b"\x4d\x4d\x4d\x01\x38\x00\x00\x00";
 pub const MTKPL_LOAD_ADDRESS_OFFSET: u64 = 0x1C;
 pub const MTKPL_ENTRY_POINT_OFFSET: u64 = 0x28;
@@ -38,12 +33,15 @@ impl SegmentMappingData {
 #[derive(Clone)]
 pub struct SectionData {
     pub name: String,
-    pub mapped_addr_range: Range<u64>
+    pub mapped_addr_range: Range<u64>,
 }
 
 impl SectionData {
     fn new(name: &str, mapped_addr_range: Range<u64>) -> Self {
-        Self { name: name.to_string(), mapped_addr_range }
+        Self {
+            name: name.to_string(),
+            mapped_addr_range,
+        }
     }
 }
 
@@ -109,7 +107,13 @@ impl MTKPreloaderParser {
             header_seg_flags,
         );
 
-        let header_section = SectionData::new(".plhdr", Range { start: load_addr, end: load_addr + header_size as u64 });
+        let header_section = SectionData::new(
+            ".plhdr",
+            Range {
+                start: load_addr,
+                end: load_addr + header_size as u64,
+            },
+        );
 
         // Segment Flags
         let code_data_seg_flags = SegmentFlags::new()
@@ -133,12 +137,26 @@ impl MTKPreloaderParser {
             code_data_seg_flags,
         );
 
-        let code_data_section = SectionData::new(".code.data", Range { start: entry_addr, end: entry_addr + preloader_size as u64 - entry_offset });
+        let code_data_section = SectionData::new(
+            ".code.data",
+            Range {
+                start: entry_addr,
+                end: entry_addr + preloader_size as u64 - entry_offset,
+            },
+        );
 
-        parser.segment_data.insert(".plhdr".to_string(),header_segment);
-        parser.segment_data.insert(".code.data".to_string(), code_data_segment);
-        parser.section_data.insert(".plhdr".to_string(), header_section);
-        parser.section_data.insert(".code.data".to_string(), code_data_section);
+        parser
+            .segment_data
+            .insert(".plhdr".to_string(), header_segment);
+        parser
+            .segment_data
+            .insert(".code.data".to_string(), code_data_segment);
+        parser
+            .section_data
+            .insert(".plhdr".to_string(), header_section);
+        parser
+            .section_data
+            .insert(".code.data".to_string(), code_data_section);
 
         parser
     }
@@ -199,13 +217,25 @@ impl fmt::Display for MTKPreloaderParser {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("Loaded Preloader Data:\n");
         if let Some(hs) = self.segment_data.get(".plhdr") {
-            s = format!("{s}m .plhdr -> 0x{:X} - 0x{:X}\n",hs.mapped_addr_range.start, hs.mapped_addr_range.end);
-            s = format!("{s}f .plhdr -> 0x{:X} - 0x{:X}\n",hs.file_backing.start, hs.file_backing.end);
+            s = format!(
+                "{s}m .plhdr -> 0x{:X} - 0x{:X}\n",
+                hs.mapped_addr_range.start, hs.mapped_addr_range.end
+            );
+            s = format!(
+                "{s}f .plhdr -> 0x{:X} - 0x{:X}\n",
+                hs.file_backing.start, hs.file_backing.end
+            );
         };
 
         if let Some(cds) = self.segment_data.get(".code.data") {
-            s = format!("{s}m .code.data -> 0x{:X} - 0x{:X}\n",cds.mapped_addr_range.start, cds.mapped_addr_range.end);
-            s = format!("{s}f .code.data -> 0x{:X} - 0x{:X}\n",cds.file_backing.start, cds.file_backing.end);
+            s = format!(
+                "{s}m .code.data -> 0x{:X} - 0x{:X}\n",
+                cds.mapped_addr_range.start, cds.mapped_addr_range.end
+            );
+            s = format!(
+                "{s}f .code.data -> 0x{:X} - 0x{:X}\n",
+                cds.file_backing.start, cds.file_backing.end
+            );
         }
         write!(f, "{s}")
     }

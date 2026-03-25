@@ -1,4 +1,8 @@
-use binaryninja::{binary_view::{BinaryViewBase, BinaryViewExt}, command::{Command, register_command}, custom_binary_view::register_view_type};
+use binaryninja::{
+    binary_view::{BinaryViewBase, BinaryViewExt},
+    command::{Command, register_command},
+    custom_binary_view::register_view_type,
+};
 use tracing::{debug, info};
 
 mod mtkpl_loader;
@@ -36,7 +40,11 @@ pub extern "C" fn CorePluginInit() -> bool {
         mtkplview::MTKPreloaderBinaryViewType::new,
     );
 
-    register_command("plview\\Print Load Information", "Prints load information for the current file.", LoadCommand);
+    register_command(
+        "plview\\Print Load Information",
+        "Prints load information for the current file.",
+        LoadCommand,
+    );
 
     debug!("Preloader View Initialized.");
 
