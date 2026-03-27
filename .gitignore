@@ -1,3 +1,7 @@
+# Dirs
 /target
+/testbins
+
+# Files
 test.sh
 n*
