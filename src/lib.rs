@@ -1,12 +1,13 @@
 use binaryninja::{
     binary_view::{BinaryViewBase, BinaryViewExt},
     command::{Command, register_command},
-    custom_binary_view::register_view_type,
+    custom_binary_view::register_view_type, settings::Settings,
 };
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
-mod mtkpl_loader;
-mod mtkplview;
+mod mtk_loaders;
+mod mtk_view;
+mod mtk_settings;
 
 struct LoadCommand;
 
@@ -20,8 +21,11 @@ impl Command for LoadCommand {
             info!("Failed to get read buffer..");
             return;
         };
-        let pl = mtkpl_loader::MTKPreloaderParser::new(buf);
-        info!("{pl}");
+        if let Ok(pl) = mtk_loaders::MTKBootRomLoader::new(buf) {
+            info!("{pl}");
+        } else {
+            error!("Failed to load buffer with MTKBootRomLoader!");
+        }
     }
     fn valid(&self, _view: &binaryninja::binary_view::BinaryView) -> bool {
         true
@@ -31,22 +35,28 @@ impl Command for LoadCommand {
 #[allow(non_snake_case)]
 #[unsafe(no_mangle)]
 pub extern "C" fn CorePluginInit() -> bool {
-    binaryninja::tracing_init!("mtkpl");
-    debug!("Preloader View initializing..");
+    binaryninja::tracing_init!("mtkview");
+    debug!("MTK view initializing..");
+
+    // Register Settings Group
+    // Register Setting JSON
+    let settings = Settings::new();
+    settings.register_group("mtkldr", "MTK Loader");
+    //settings.register_setting_json("mtkldr", )
 
     register_view_type(
-        "mtkpl",
-        "MTK Preloader",
-        mtkplview::MTKPreloaderBinaryViewType::new,
+        "mtkview",
+        "MTK",
+        mtk_view::MTKLoaderBinaryViewType::new,
     );
 
     register_command(
-        "plview\\Print Load Information",
+        "mtkview\\Print Load Information",
         "Prints load information for the current file.",
         LoadCommand,
     );
 
-    debug!("Preloader View Initialized.");
+    debug!("MTK view initialized.");
 
     true
 }

@@ -1,4 +1,11 @@
-use crate::mtkpl_loader::{MTKPL_MAGIC, MTKPreloaderParser};
+use crate::mtk_loaders::{
+    MTKBootRomLoader, MTKPL_MAGIC,
+    gfh_headers::{
+        MtkGfhHeader,
+        gfh_file_info::GfhFileInfo,
+        gfh_types::{GFH_TYPES_C_SRC, GfhCPlatformTypes},
+    },
+};
 use base64::prelude::*;
 use binaryninja::{
     architecture::CoreArchitecture,
@@ -11,30 +18,30 @@ use binaryninja::{
     section::Section,
     segment::Segment,
     symbol::{Symbol, SymbolType},
-    types::{MemberAccess, MemberScope, StructureBuilder, Type},
+    types::{CoreTypeParser, MemberAccess, MemberScope, StructureBuilder, Type, TypeParser},
 };
 use std::ops::Range;
 use tracing::{debug, info, warn};
 
-type BinaryViewResult<R> = binaryninja::binary_view::Result<R>;
+pub(crate) type BinaryViewResult<R> = binaryninja::binary_view::Result<R>;
 
-pub struct MTKPreloaderBinaryViewType {
+pub struct MTKLoaderBinaryViewType {
     view_type: BinaryViewType,
 }
 
-impl MTKPreloaderBinaryViewType {
+impl MTKLoaderBinaryViewType {
     pub fn new(view_type: BinaryViewType) -> Self {
         Self { view_type }
     }
 }
 
-impl AsRef<BinaryViewType> for MTKPreloaderBinaryViewType {
+impl AsRef<BinaryViewType> for MTKLoaderBinaryViewType {
     fn as_ref(&self) -> &BinaryViewType {
         &self.view_type
     }
 }
 
-impl BinaryViewTypeBase for MTKPreloaderBinaryViewType {
+impl BinaryViewTypeBase for MTKLoaderBinaryViewType {
     fn is_deprecated(&self) -> bool {
         false
     }
@@ -52,43 +59,52 @@ impl BinaryViewTypeBase for MTKPreloaderBinaryViewType {
             return false;
         };
 
-        data.read_into_vec(&mut magic, offset, MTKPL_MAGIC.len());
+        data.read_into_vec(&mut magic, offset, 0x300);
+        match GfhFileInfo::load(&magic, 0) {
+            Some(_) => true,
+            None => false,
+        } /*
         if magic == MTKPL_MAGIC {
-            debug!("Raw Preloader is valid.");
-            return true;
+        debug!("Raw Preloader is valid.");
+        return true;
         }
         warn!("Valid for failure!");
-        false
+        false*/
     }
 }
 
-impl CustomBinaryViewType for MTKPreloaderBinaryViewType {
+impl CustomBinaryViewType for MTKLoaderBinaryViewType {
     fn create_custom_view<'builder>(
         &self,
         data: &BinaryView,
         builder: binaryninja::custom_binary_view::CustomViewBuilder<'builder, Self>,
     ) -> binaryninja::binary_view::Result<binaryninja::custom_binary_view::CustomView<'builder>>
     {
-        debug!("Creating MTKPreloaderBinaryView from MTKPreloaderBinaryViewType");
+        debug!("Creating MTKLoaderBinaryView from MTKLoaderBinaryViewType");
 
-        let bv = builder.create::<MTKPreloaderBinaryView>(data, ());
+        let bv = builder.create::<MTKLoaderBinaryView>(data, ());
         bv
     }
 }
 
-unsafe impl CustomBinaryView for MTKPreloaderBinaryView {
+unsafe impl CustomBinaryView for MTKLoaderBinaryView {
     type Args = ();
 
     fn new(handle: &BinaryView, _args: &Self::Args) -> binaryninja::binary_view::Result<Self> {
-        MTKPreloaderBinaryView::new(handle)
+        MTKLoaderBinaryView::new(handle)
     }
 
     fn init(&mut self, _args: Self::Args) -> binaryninja::binary_view::Result<()> {
-        MTKPreloaderBinaryView::init(self)
+        MTKLoaderBinaryView::init(self)
     }
 }
 
-impl BinaryViewBase for MTKPreloaderBinaryView {
+pub struct MTKLoaderBinaryView {
+    inner: binaryninja::rc::Ref<BinaryView>,
+    mtk_br_loader: MTKBootRomLoader,
+}
+
+impl BinaryViewBase for MTKLoaderBinaryView {
     fn address_size(&self) -> usize {
         4
     }
@@ -102,34 +118,42 @@ impl BinaryViewBase for MTKPreloaderBinaryView {
     }
 }
 
-pub struct MTKPreloaderBinaryView {
-    inner: binaryninja::rc::Ref<BinaryView>,
-    mtkpl_parser: MTKPreloaderParser,
-}
-
-impl MTKPreloaderBinaryView {
+impl MTKLoaderBinaryView {
     fn new(view: &BinaryView) -> BinaryViewResult<Self> {
         let parent_view = view.parent_view().ok_or(())?;
         let read_buffer = parent_view
             .read_buffer(0, parent_view.len() as usize)
             .ok_or(())?;
+        let mtk_br_loader = MTKBootRomLoader::new(read_buffer)?;
         Ok(Self {
             inner: view.to_owned(),
-            mtkpl_parser: MTKPreloaderParser::new(read_buffer),
+            mtk_br_loader,
         })
     }
 
     fn init(&self) -> BinaryViewResult<()> {
         debug!("INIT");
-
         let default_arch = CoreArchitecture::by_name("thumb2").ok_or(())?;
-        let default_platform = Platform::by_name("thumb2").ok_or(())?;
+        let default_platform = Platform::by_name("armv7").ok_or(())?;
+        let plat_type_container = default_platform.type_container();
+        let type_parser = CoreTypeParser::default();
+        let parsed_types = type_parser
+            .parse_types_from_source(
+                GFH_TYPES_C_SRC,
+                "gfh_types.h",
+                &default_platform,
+                &plat_type_container,
+                &[],
+                &[],
+                "",
+            )
+            .unwrap();
         self.set_default_arch(&default_arch);
         self.set_default_platform(&default_platform);
 
-        info!("{}", self.mtkpl_parser);
+        info!("{}", self.mtk_br_loader);
 
-        for (_name, segment) in self.mtkpl_parser.get_segments() {
+        for (_name, segment) in self.mtk_br_loader.get_segments() {
             let new_segment = Segment::builder(segment.mapped_addr_range.clone())
                 .parent_backing(segment.file_backing.clone())
                 .is_auto(true)
@@ -138,7 +162,7 @@ impl MTKPreloaderBinaryView {
             self.add_segment(new_segment);
         }
 
-        for (name, section) in self.mtkpl_parser.get_sections() {
+        for (name, section) in self.mtk_br_loader.get_sections() {
             let mut new_section = Section::builder(
                 section.name.clone(),
                 Range {
@@ -155,6 +179,7 @@ impl MTKPreloaderBinaryView {
             self.add_section(new_section);
         }
 
+        // Setup Entry Point
         let entry_forced_platform = Platform::by_name("armv7").ok_or(())?;
         let entry_point = self.get_entry_point();
         let start_symbol = Symbol::builder(SymbolType::Function, "_start", entry_point)
@@ -164,25 +189,27 @@ impl MTKPreloaderBinaryView {
         self.add_entry_point_with_platform(entry_point, &entry_forced_platform);
         self.define_user_symbol(&start_symbol);
 
-        let header_type = self.define_mtkpl_header();
-        self.define_user_type("mtkpl_hdr", &header_type);
-        let sym = Symbol::builder(
-            SymbolType::Data,
-            "mtkpl_hdr",
-            self.mtkpl_parser.get_image_load_addr() as u64,
-        )
-        .create();
-        let header_type = self.type_by_name("mtkpl_hdr");
-        self.define_auto_symbol_with_type(
-            &sym,
-            &entry_forced_platform,
-            Some(&*header_type.unwrap()),
-        )
-        .unwrap();
+        // Setup Types
+        parsed_types.types.iter().for_each(|pt| {
+            if pt.name == "gfh_file_info".into() || pt.name == "gfh_common_header".into() {
+                let name = pt.name.to_string();
+                self.define_user_type(name.clone(), &pt.ty);
+                let sym = Symbol::builder(
+                    SymbolType::Data,
+                    &name,
+                    self.mtk_br_loader.get_image_load_addr() as u64,
+                )
+                .create();
+
+                self.define_auto_symbol_with_type(&sym, &entry_forced_platform, Some(&*pt.ty))
+                    .unwrap();
+            }
+        });
 
         Ok(())
     }
 
+    /*
     fn define_mtkpl_header(&self) -> binaryninja::rc::Ref<binaryninja::types::Type> {
         let magic = Type::named_int(4, false, "magic");
         let unk0 = Type::array(&Type::char(), 0x18);
@@ -216,13 +243,14 @@ impl MTKPreloaderBinaryView {
 
         Type::structure(&mtkpl_header_struct.finalize())
     }
+    */
 
     fn get_entry_point(&self) -> u64 {
-        self.mtkpl_parser.get_entry_point()
+        self.mtk_br_loader.get_entry_point()
     }
 }
 
-impl AsRef<BinaryView> for MTKPreloaderBinaryView {
+impl AsRef<BinaryView> for MTKLoaderBinaryView {
     fn as_ref(&self) -> &BinaryView {
         &self.inner
     }
