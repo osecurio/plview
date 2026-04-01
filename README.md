@@ -18,5 +18,5 @@ Load MTK GFH binaries:
 After building and installing, open Binary Ninja and select a partition or a raw MTK GFH BootROM binary. The binja view should say `MTK`.
 
 ## Screenshot
-- Out of date SS
+
 ![Demo](docs/screen.png)
