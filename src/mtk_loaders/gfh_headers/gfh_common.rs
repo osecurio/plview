@@ -97,24 +97,29 @@ impl GfhCommonHeader {
 
 impl fmt::Display for GfhCommonHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "    magic_version: 0x{:X}\n    size: 0x{:X}\n    gfh_type: {}", self.magic_version, self.size, self.gfh_type)
+        write!(
+            f,
+            "    magic_version: 0x{:X}\n    size: 0x{:X}\n    gfh_type: {}",
+            self.magic_version, self.size, self.gfh_type
+        )
     }
 }
 
 impl MtkGfhHeader for GfhCommonHeader {
     type Header = GfhCommonHeader;
     fn load(data: &[u8], mut offset: usize) -> Option<Self::Header> {
-
-        let mv = *data[offset..offset+size_of::<u32>()].as_array().unwrap();
-        if mv[0..3] != GFH_HEADER_MAGIC!() { return None}
+        let mv = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
+        if mv[0..3] != GFH_HEADER_MAGIC!() {
+            return None;
+        }
         let magic_version = u32::from_le_bytes(mv);
         offset += 0x4;
 
-        let sz = *data[offset..offset+size_of::<u16>()].as_array().unwrap();
+        let sz = *data[offset..offset + size_of::<u16>()].as_array().unwrap();
         let size = u16::from_le_bytes(sz);
         offset += 0x2;
 
-        let t = *data[offset..offset+size_of::<u16>()].as_array().unwrap();
+        let t = *data[offset..offset + size_of::<u16>()].as_array().unwrap();
         let gfh_type = u16::from_le_bytes(t).into();
 
         Some(Self {

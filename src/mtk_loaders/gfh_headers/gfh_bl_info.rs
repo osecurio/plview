@@ -11,13 +11,11 @@ pub struct GfhBlInfo {
 impl MtkGfhHeader for GfhBlInfo {
     type Header = GfhBlInfo;
     fn load(data: &[u8], mut offset: usize) -> Option<Self::Header> {
-        println!("{:X?}", &data[offset..offset+0xc]);
+        println!("{:X?}", &data[offset..offset + 0xc]);
         let gfh_common = GfhCommonHeader::load(&data, offset)?;
         offset += gfh_common.get_size() as usize;
 
-        let at = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let at = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let attr: u32 = u32::from_le_bytes(at);
 
         Some(Self { gfh_common, attr })

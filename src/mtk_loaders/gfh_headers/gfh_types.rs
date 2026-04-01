@@ -1,5 +1,7 @@
-use binaryninja::{platform::Platform, types::{CoreTypeParser, ParsedType, TypeParser, TypeParserResult}};
-
+use binaryninja::{
+    platform::Platform,
+    types::{CoreTypeParser, ParsedType, TypeParser, TypeParserResult},
+};
 
 pub(crate) const GFH_TYPES_C_SRC: &'static str = r#"
 /* Header for NOR/SD/eMMC */
@@ -200,7 +202,17 @@ impl GfhCPlatformTypes {
         let platform = Platform::by_name("armv7").unwrap();
         let plat_type_container = platform.type_container();
         let type_parser = CoreTypeParser::default();
-        let parsed_types = type_parser.parse_types_from_source(GFH_TYPES_C_SRC, "gfh_types.h", &platform, &plat_type_container, &[], &[], "").unwrap();
+        let parsed_types = type_parser
+            .parse_types_from_source(
+                GFH_TYPES_C_SRC,
+                "gfh_types.h",
+                &platform,
+                &plat_type_container,
+                &[],
+                &[],
+                "",
+            )
+            .unwrap();
 
         Self { parsed_types }
     }
@@ -208,7 +220,7 @@ impl GfhCPlatformTypes {
     pub fn get_type_by_name(&self, name: &str) -> Option<ParsedType> {
         for t in &self.parsed_types.types {
             if t.name == name.into() {
-                return Some(t.clone())
+                return Some(t.clone());
             }
         }
         None

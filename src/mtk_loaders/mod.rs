@@ -155,7 +155,7 @@ impl MTKBootRomLoader {
         };
 
         let file_offset_to_gfh_header = Self::get_file_backed_start_offset(&parser);
-        
+
         let Some(file_info) = mtkl.get_gfh_file_info() else {
             return Err(());
         };
@@ -176,10 +176,22 @@ impl MTKBootRomLoader {
         );
 
         let code_data_map_start = hdr_full_size + load_addr;
-        let code_data_map_end = code_data_map_start + (preloader_size as u64 - hdr_full_size - signature_length as u64 - emi_parser.emi_buffer.len() as u64 - 0x4);
+        let code_data_map_end = code_data_map_start
+            + (preloader_size as u64
+                - hdr_full_size
+                - signature_length as u64
+                - emi_parser.emi_buffer.len() as u64
+                - 0x4);
         let code_data_fb_start = file_offset_to_gfh_header as u64 + hdr_full_size;
-        let code_data_fb_end = code_data_fb_start + (preloader_size as u64 - entry_offset as u64 - signature_length as u64 - emi_parser.emi_buffer.len() as u64) - 0x4;
-        println!("code_data_map_start: 0x{code_data_map_start:X}, code_data_map_end: 0x{code_data_map_end:X}, code_data_fb_start: 0x{code_data_fb_start:X}, code_data_fb_end: 0x{code_data_fb_end:X}");
+        let code_data_fb_end = code_data_fb_start
+            + (preloader_size as u64
+                - entry_offset as u64
+                - signature_length as u64
+                - emi_parser.emi_buffer.len() as u64)
+            - 0x4;
+        println!(
+            "code_data_map_start: 0x{code_data_map_start:X}, code_data_map_end: 0x{code_data_map_end:X}, code_data_fb_start: 0x{code_data_fb_start:X}, code_data_fb_end: 0x{code_data_fb_end:X}"
+        );
 
         let emi_buffer_len = emi_parser.emi_buffer.len() as u64;
         let emi_map_start = load_addr + emi_parser.emi_file_offset as u64;
@@ -190,7 +202,8 @@ impl MTKBootRomLoader {
         let signature_map_start = load_addr + emi_parser.signature_file_offset as u64;
         let signature_map_end = signature_map_start + emi_parser.signature_buffer.len() as u64;
         let signature_fb_start = emi_parser.signature_file_offset as u64;
-        let signature_fb_end = emi_parser.signature_file_offset as u64 + emi_parser.signature_buffer.len() as u64;
+        let signature_fb_end =
+            emi_parser.signature_file_offset as u64 + emi_parser.signature_buffer.len() as u64;
 
         let header_seg_flags = SegmentFlags::new()
             .readable(true)
@@ -263,11 +276,12 @@ impl MTKBootRomLoader {
             Range {
                 start: emi_map_start,
                 end: emi_map_end,
-            }, Range {
+            },
+            Range {
                 start: emi_fb_start,
                 end: emi_fb_end,
             },
-            emi_data_seg_flags
+            emi_data_seg_flags,
         );
 
         let emi_data_section = SectionData::new(
@@ -291,11 +305,12 @@ impl MTKBootRomLoader {
             Range {
                 start: signature_map_start,
                 end: signature_map_end,
-            }, Range {
+            },
+            Range {
                 start: signature_fb_start,
                 end: signature_fb_end,
             },
-            signature_data_seg_flags
+            signature_data_seg_flags,
         );
 
         let signature_data_section = SectionData::new(
@@ -318,10 +333,18 @@ impl MTKBootRomLoader {
         parser
             .section_data
             .insert(".code.data".to_string(), code_data_section);
-        parser.segment_data.insert(".emi.data".to_string(), emi_data_segment);
-        parser.section_data.insert(".emi.data".to_string(), emi_data_section);
-        parser.segment_data.insert(".signature.data".to_string(), signature_data_segment);
-        parser.section_data.insert(".signature.data".to_string(), signature_data_section);
+        parser
+            .segment_data
+            .insert(".emi.data".to_string(), emi_data_segment);
+        parser
+            .section_data
+            .insert(".emi.data".to_string(), emi_data_section);
+        parser
+            .segment_data
+            .insert(".signature.data".to_string(), signature_data_segment);
+        parser
+            .section_data
+            .insert(".signature.data".to_string(), signature_data_section);
 
         Ok(parser)
     }
@@ -361,8 +384,8 @@ impl MTKBootRomLoader {
     }
 
     pub fn get_signature_length(&self, ep_offset: usize) -> u32 {
-        let signature_length = &self.image_data[ep_offset as usize + 4
-            ..ep_offset as usize + 4 + MTKPL_ADDRESS_WIDTH as usize];
+        let signature_length = &self.image_data
+            [ep_offset as usize + 4..ep_offset as usize + 4 + MTKPL_ADDRESS_WIDTH as usize];
         u32::from_le_bytes(*signature_length.as_array().unwrap())
     }
 

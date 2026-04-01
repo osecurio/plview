@@ -1,10 +1,6 @@
 use crate::mtk_loaders::{
     MTKBootRomLoader, MTKPL_MAGIC,
-    gfh_headers::{
-        MtkGfhHeader,
-        gfh_file_info::GfhFileInfo,
-        gfh_types::{GFH_TYPES_C_SRC, GfhCPlatformTypes},
-    },
+    gfh_headers::{MtkGfhHeader, gfh_file_info::GfhFileInfo, gfh_types::GFH_TYPES_C_SRC},
 };
 use base64::prelude::*;
 use binaryninja::{

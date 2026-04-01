@@ -80,69 +80,47 @@ impl MtkGfhHeader for GfhFileInfo {
         let name = *data[offset..offset + 12].as_array().unwrap();
         offset += 12;
 
-        let u = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let u = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let unused = u32::from_le_bytes(u);
         offset += 4;
 
-        let file_t = *data[offset..offset + size_of::<u16>()]
-            .as_array()
-            .unwrap();
+        let file_t = *data[offset..offset + size_of::<u16>()].as_array().unwrap();
         let file_type = u16::from_le_bytes(file_t);
         offset += 2;
 
-        let flash_t = *data[offset..offset + size_of::<u8>()]
-            .as_array()
-            .unwrap();
+        let flash_t = *data[offset..offset + size_of::<u8>()].as_array().unwrap();
         let flash_type = u8::from_le_bytes(flash_t);
         offset += 1;
 
-        let sig_t = *data[offset..offset + size_of::<u8>()]
-            .as_array()
-            .unwrap();
+        let sig_t = *data[offset..offset + size_of::<u8>()].as_array().unwrap();
         let sig_type = u8::from_le_bytes(sig_t);
         offset += 1;
 
-        let load_a = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let load_a = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let load_addr = u32::from_le_bytes(load_a);
         offset += 4;
 
-        let total_sz = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let total_sz = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let total_size = u32::from_le_bytes(total_sz);
         offset += 4;
 
-        let max_sz = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let max_sz = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let max_size = u32::from_le_bytes(max_sz);
         offset += 4;
 
-        let hdr_sz = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let hdr_sz = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let hdr_size = u32::from_le_bytes(hdr_sz);
         offset += 4;
 
-        let sig_sz = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let sig_sz = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let sig_size = u32::from_le_bytes(sig_sz);
         offset += 4;
 
-        let jo = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let jo = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let jump_offset = u32::from_le_bytes(jo);
         offset += 4;
 
-        let procd = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let procd = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let processed = u32::from_le_bytes(procd);
 
         Some(Self {

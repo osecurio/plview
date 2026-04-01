@@ -16,33 +16,23 @@ impl MtkGfhHeader for GfhAntiClone {
         let gfh_common = GfhCommonHeader::load(data, offset)?;
         offset += gfh_common.get_size() as usize;
 
-        let acbk = *data[offset..offset + size_of::<u8>()]
-            .as_array()
-            .unwrap();
+        let acbk = *data[offset..offset + size_of::<u8>()].as_array().unwrap();
         let ac_b2k = u8::from_le_bytes(acbk);
         offset += 1;
 
-        let acbc = *data[offset..offset + size_of::<u8>()]
-            .as_array()
-            .unwrap();
+        let acbc = *data[offset..offset + size_of::<u8>()].as_array().unwrap();
         let ac_b2c = u8::from_le_bytes(acbc);
         offset += 1;
 
-        let p = *data[offset..offset + size_of::<u16>()]
-            .as_array()
-            .unwrap();
+        let p = *data[offset..offset + size_of::<u16>()].as_array().unwrap();
         let pad = u16::from_le_bytes(p);
         offset += 2;
 
-        let aco = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let aco = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let ac_offset = u32::from_le_bytes(aco);
         offset += 4;
 
-        let acl = *data[offset..offset + size_of::<u32>()]
-            .as_array()
-            .unwrap();
+        let acl = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let ac_len = u32::from_le_bytes(acl);
 
         Some(Self {

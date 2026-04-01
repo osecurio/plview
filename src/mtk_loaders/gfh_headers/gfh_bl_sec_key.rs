@@ -12,12 +12,9 @@ impl MtkGfhHeader for GfhBlSecKey {
         let gfh_common = GfhCommonHeader::load(data, offset)?;
         offset += gfh_common.get_size() as usize;
 
-        let pad = *data[offset..offset+0x20c].as_array().unwrap();
+        let pad = *data[offset..offset + 0x20c].as_array().unwrap();
 
-        Some(Self {
-            gfh_common,
-            pad,
-        })
+        Some(Self { gfh_common, pad })
     }
 
     fn header_size(&self) -> usize {

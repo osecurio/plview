@@ -1,16 +1,22 @@
 use tracing::{info, warn};
 
 use crate::mtk_loaders::gfh_headers::{
-    gfh_anti_clone::GfhAntiClone, gfh_bl_info::GfhBlInfo, gfh_bl_sec_key::GfhBlSecKey, gfh_brom_cfg::GfhBromCfg, gfh_brom_sec_cfg::GfhBromSecCfg, gfh_common::{GfhCommonHeader, GfhHeaderType}, gfh_file_info::GfhFileInfo
+    gfh_anti_clone::GfhAntiClone,
+    gfh_bl_info::GfhBlInfo,
+    gfh_bl_sec_key::GfhBlSecKey,
+    gfh_brom_cfg::GfhBromCfg,
+    gfh_brom_sec_cfg::GfhBromSecCfg,
+    gfh_common::{GfhCommonHeader, GfhHeaderType},
+    gfh_file_info::GfhFileInfo,
 };
 
+pub(crate) mod gfh_anti_clone;
 pub(crate) mod gfh_bl_info;
+pub(crate) mod gfh_bl_sec_key;
 pub(crate) mod gfh_brom_cfg;
+pub(crate) mod gfh_brom_sec_cfg;
 pub(crate) mod gfh_common;
 pub(crate) mod gfh_file_info;
-pub(crate) mod gfh_bl_sec_key;
-pub(crate) mod gfh_anti_clone;
-pub(crate) mod gfh_brom_sec_cfg;
 pub(crate) mod gfh_types;
 
 pub trait MtkGfhHeader {
@@ -26,7 +32,7 @@ pub struct GfhHeader {
     gfh_brom_cfg: Option<gfh_brom_cfg::GfhBromCfg>,
     gfh_bl_sec_key: Option<gfh_bl_sec_key::GfhBlSecKey>,
     gfh_anti_clone: Option<gfh_anti_clone::GfhAntiClone>,
-    gfh_brom_sec_cfg: Option<gfh_brom_sec_cfg::GfhBromSecCfg>
+    gfh_brom_sec_cfg: Option<gfh_brom_sec_cfg::GfhBromSecCfg>,
 }
 
 impl GfhHeader {
@@ -66,7 +72,6 @@ impl MtkGfhHeader for GfhHeader {
         println!("Being parse loop..");
 
         loop {
-
             let Some(header_type) = GfhCommonHeader::load(data, offset) else {
                 // No more headers to parse
                 println!("No more headers!");
@@ -77,7 +82,6 @@ impl MtkGfhHeader for GfhHeader {
                 GfhHeaderType::GFH_TYPE_FILE_INFO => {
                     println!("Trying {}", header_type.get_type());
                     if let Some(header) = GfhFileInfo::load(data, offset) {
-
                         offset += header.header_size();
                         if gfh_header.gfh_file_info.is_none() {
                             gfh_header.gfh_file_info = Some(header);
@@ -102,7 +106,7 @@ impl MtkGfhHeader for GfhHeader {
                             );
                         }
                     }
-                },
+                }
                 GfhHeaderType::GFH_TYPE_BROM_CFG => {
                     println!("Trying {}", header_type.get_type());
                     if let Some(header) = GfhBromCfg::load(data, offset) {
@@ -117,7 +121,7 @@ impl MtkGfhHeader for GfhHeader {
                             );
                         }
                     }
-                },
+                }
                 GfhHeaderType::GFH_TYPE_BL_SEC_KEY => {
                     println!("Trying {}", header_type.get_type());
                     if let Some(header) = GfhBlSecKey::load(data, offset) {
@@ -131,7 +135,7 @@ impl MtkGfhHeader for GfhHeader {
                             );
                         }
                     }
-                },
+                }
                 GfhHeaderType::GFH_TYPE_ANTI_CLONE => {
                     println!("Trying {}", header_type.get_type());
                     if let Some(header) = GfhAntiClone::load(data, offset) {
@@ -145,7 +149,7 @@ impl MtkGfhHeader for GfhHeader {
                             );
                         }
                     }
-                },
+                }
                 GfhHeaderType::GFH_TYPE_BROM_SEC_CFG => {
                     println!("Trying {}", header_type.get_type());
                     if let Some(header) = GfhBromSecCfg::load(data, offset) {
@@ -159,19 +163,18 @@ impl MtkGfhHeader for GfhHeader {
                             );
                         }
                     }
-                },
+                }
                 GfhHeaderType::Unknown => {
                     println!("Trying {}", header_type.get_type());
                     // Ruh Roh Raggy
                     println!("Got GfhHeaderType::Unknown.. something is probably wrong..");
-                },
+                }
             }
 
             if gfh_hdr_size as usize == offset {
                 println!("GFH header size offset reached");
                 break;
-            }
-            else if offset > gfh_hdr_size {
+            } else if offset > gfh_hdr_size {
                 println!("offset > gfh_hdr_size... something went wrong..");
                 break;
             }

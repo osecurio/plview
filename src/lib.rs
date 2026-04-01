@@ -1,13 +1,14 @@
 use binaryninja::{
     binary_view::{BinaryViewBase, BinaryViewExt},
     command::{Command, register_command},
-    custom_binary_view::register_view_type, settings::Settings,
+    custom_binary_view::register_view_type,
+    settings::Settings,
 };
 use tracing::{debug, error, info};
 
 mod mtk_loaders;
-mod mtk_view;
 mod mtk_settings;
+mod mtk_view;
 
 struct LoadCommand;
 
@@ -44,11 +45,7 @@ pub extern "C" fn CorePluginInit() -> bool {
     settings.register_group("mtkldr", "MTK Loader");
     //settings.register_setting_json("mtkldr", )
 
-    register_view_type(
-        "mtkview",
-        "MTK",
-        mtk_view::MTKLoaderBinaryViewType::new,
-    );
+    register_view_type("mtkview", "MTK", mtk_view::MTKLoaderBinaryViewType::new);
 
     register_command(
         "mtkview\\Print Load Information",
