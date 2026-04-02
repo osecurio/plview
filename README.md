@@ -7,7 +7,7 @@ Load MTK GFH binaries:
 
 `git clone https://github.com/osecurio/mtkview`
 
-`cd plview`
+`cd mtkview`
 
 `DEP_BINARYNINJACORE_PATH=<PATH_TO_BINJA_DIR> cargo build --release`
 
