@@ -74,10 +74,6 @@ impl Into<u16> for GfhHeaderType {
     }
 }
 
-const GFH_COMMON_MAGIC_VERSION_OFFSET: usize = 0x0;
-const GFH_COMMON_SIZE_OFFSET: usize = 0x4;
-const GFH_COMMON_TYPE_OFFSET: usize = 0x6;
-
 #[derive(Debug, Clone, Copy)]
 pub struct GfhCommonHeader {
     magic_version: u32,

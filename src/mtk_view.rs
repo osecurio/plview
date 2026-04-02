@@ -14,7 +14,7 @@ use binaryninja::{
     section::Section,
     segment::Segment,
     symbol::{Symbol, SymbolType},
-    types::{CoreTypeParser, MemberAccess, MemberScope, StructureBuilder, Type, TypeParser},
+    types::{CoreTypeParser, TypeParser},
 };
 use std::ops::Range;
 use tracing::{debug, info, warn};
@@ -129,8 +129,8 @@ impl MTKLoaderBinaryView {
 
     fn init(&self) -> BinaryViewResult<()> {
         debug!("INIT");
-        let default_arch = CoreArchitecture::by_name("thumb2").ok_or(())?;
-        let default_platform = Platform::by_name("armv7").ok_or(())?;
+        let default_arch = CoreArchitecture::by_name("armv7").ok_or(())?;
+        let default_platform = Platform::by_name("thumb2").ok_or(())?;
         let plat_type_container = default_platform.type_container();
         let type_parser = CoreTypeParser::default();
         let parsed_types = type_parser
@@ -185,22 +185,38 @@ impl MTKLoaderBinaryView {
         self.add_entry_point_with_platform(entry_point, &entry_forced_platform);
         self.define_user_symbol(&start_symbol);
 
-        // Setup Types
-        parsed_types.types.iter().for_each(|pt| {
-            if pt.name == "gfh_file_info".into() || pt.name == "gfh_common_header".into() {
-                let name = pt.name.to_string();
-                self.define_user_type(name.clone(), &pt.ty);
-                let sym = Symbol::builder(
-                    SymbolType::Data,
-                    &name,
-                    self.mtk_br_loader.get_image_load_addr() as u64,
-                )
-                .create();
+        // Define User Header Types (MOVE THIS CODE INTO THE SPECIFIC MTK HEADER PARSERS)
+        let pt_clone = parsed_types.types.clone();
+        for pt in parsed_types.types {
+            let Some(type_offset) = self.mtk_br_loader.get_type_addr(&pt.name.to_string()) else {
+                continue;
+            };
 
-                self.define_auto_symbol_with_type(&sym, &entry_forced_platform, Some(&*pt.ty))
-                    .unwrap();
-            }
-        });
+            // Define GFH COMMON for each header... needs refactor?
+            let name = pt.name.to_string();
+            self.define_user_type("gfh_common_header", &pt_clone.iter().find(|p| p.name == "gfh_common_header".into()).unwrap().ty);
+            let sym = Symbol::builder(
+                SymbolType::Data,
+                &name,
+                self.mtk_br_loader.get_image_load_addr() as u64 + type_offset as u64,
+            )
+            .create();
+            self.define_auto_symbol_with_type(&sym, &entry_forced_platform, Some(&*pt.ty))
+                .unwrap();
+
+            // Define actual type header
+            let name = pt.name.to_string();
+            self.define_user_type(name.clone(), &pt.ty);
+            let sym = Symbol::builder(
+                SymbolType::Data,
+                &name,
+                self.mtk_br_loader.get_image_load_addr() as u64 + type_offset as u64,
+            )
+            .create();
+
+            self.define_auto_symbol_with_type(&sym, &entry_forced_platform, Some(&*pt.ty))
+                .unwrap();
+        };
 
         Ok(())
     }

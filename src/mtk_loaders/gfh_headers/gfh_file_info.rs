@@ -26,6 +26,7 @@ GfhFileInfo {{
 
 #[derive(Debug, Clone, Copy)]
 pub struct GfhFileInfo {
+    gfh_type_offset: u32,
     gfh_common: GfhCommonHeader,
     name: [u8; 12],
     unused: u32,
@@ -69,11 +70,17 @@ impl GfhFileInfo {
     pub fn get_hdr_full_size(&self) -> u32 {
         self.hdr_size
     }
+
+    pub fn get_header_offset(&self) -> u32 {
+        self.gfh_type_offset
+    }
 }
 
 impl MtkGfhHeader for GfhFileInfo {
     type Header = GfhFileInfo;
     fn load(data: &[u8], mut offset: usize) -> Option<Self::Header> {
+        let gfh_type_offset = offset as u32;
+
         let gfh_common = GfhCommonHeader::load(&data, offset)?;
         offset = gfh_common.get_size() as usize;
 
@@ -124,6 +131,7 @@ impl MtkGfhHeader for GfhFileInfo {
         let processed = u32::from_le_bytes(procd);
 
         Some(Self {
+            gfh_type_offset, 
             gfh_common,
             name,
             unused,

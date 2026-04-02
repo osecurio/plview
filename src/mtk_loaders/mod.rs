@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt, ops::Range};
 use binaryninja::{data_buffer::DataBuffer, segment::SegmentFlags};
 use tracing::debug;
 
-use crate::{mtk_loaders::gfh_headers::MtkGfhHeader, mtk_view::BinaryViewResult};
+use crate::{mtk_loaders::gfh_headers::{GfhHeader, MtkGfhHeader}, mtk_view::BinaryViewResult};
 
 pub(crate) mod gfh_headers;
 
@@ -83,7 +83,7 @@ impl GeneralEMIInformation {
         let emi_end_offset_snipped = &data[..size - signature_length];
         //println!("{:X?}", &emi_end_offset_snipped);
         let emi_data_size = u32::from_le_bytes(
-            *emi_end_offset_snipped[emi_end_offset_snipped.len() - MTKPL_ADDRESS_WIDTH as usize
+            *emi_end_offset_snipped[emi_end_offset_snipped.len() - size_of::<u32>()
                 ..emi_end_offset_snipped.len()]
                 .as_array()
                 .unwrap(),
@@ -126,6 +126,7 @@ pub struct MTKBootRomLoader {
     drained_data: Vec<u8>,
     segment_data: HashMap<String, SegmentMappingData>,
     section_data: HashMap<String, SectionData>,
+    gfh_header_info: GfhHeader,
 }
 
 impl MTKBootRomLoader {
@@ -145,18 +146,19 @@ impl MTKBootRomLoader {
             &image_data.as_slice()[0..4]
         );
 
-        let mtkl = gfh_headers::GfhHeader::load(&image_data, 0).unwrap();
+        let gfh_header_info = gfh_headers::GfhHeader::load(&image_data, 0).unwrap();
 
         let mut parser = Self {
             image_data,
             drained_data,
             segment_data: HashMap::new(),
             section_data: HashMap::new(),
+            gfh_header_info,
         };
 
         let file_offset_to_gfh_header = Self::get_file_backed_start_offset(&parser);
 
-        let Some(file_info) = mtkl.get_gfh_file_info() else {
+        let Some(file_info) = parser.gfh_header_info.get_gfh_file_info() else {
             return Err(());
         };
         let load_addr = file_info.get_load_addr() as u64;
@@ -371,6 +373,10 @@ impl MTKBootRomLoader {
 
     pub fn get_entry_point(&self) -> u64 {
         return (self.get_image_load_addr() + self.get_entry_point_offset()) as u64;
+    }
+
+    pub fn get_type_addr(&self, type_name: &str) -> Option<u32> {
+        self.gfh_header_info.get_gfh_header_addr_by_name(type_name)
     }
 
     pub fn get_preloader_size(&self) -> u32 {

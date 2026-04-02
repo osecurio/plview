@@ -59,6 +59,42 @@ impl GfhHeader {
     pub fn get_gfh_brom_sec_cfg(&self) -> Option<gfh_brom_sec_cfg::GfhBromSecCfg> {
         self.gfh_brom_sec_cfg
     }
+
+    pub fn get_gfh_header_addr_by_name(&self, name: &str) -> Option<u32> {
+        match name {
+            "gfh_file_info" => {
+                if let Some(g) = self.gfh_file_info {
+                    Some(g.get_header_offset())
+                } else { None }
+            },
+            "gfh_bl_info" => {
+                if let Some(g) = self.gfh_bl_info {
+                    Some(g.get_header_offset())
+                } else { None }
+            },
+            "gfh_brom_cfg" => {
+                if let Some(g) = self.gfh_brom_cfg {
+                    Some(g.get_header_offset())
+                } else { None }
+            },
+            "gfh_bl_sec_key" => {
+                if let Some(g) = self.gfh_bl_sec_key {
+                    Some(g.get_header_offset())
+                } else { None }
+            },
+            "gfh_anti_clone" => {
+                if let Some(g) = self.gfh_anti_clone {
+                    Some(g.get_header_offset())
+                } else { None }
+            },
+            "gfh_brom_sec_cfg" => {
+                if let Some(g) = self.gfh_brom_sec_cfg {
+                    Some(g.get_header_offset())
+                } else { None }
+            },
+            _ => None
+        }
+    }
 }
 
 impl MtkGfhHeader for GfhHeader {
