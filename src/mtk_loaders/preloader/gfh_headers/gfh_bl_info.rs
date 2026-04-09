@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
+use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
 
 #[derive(Debug, Clone, Copy)]
 pub struct GfhBlInfo {
@@ -26,7 +26,11 @@ impl MtkGfhHeader for GfhBlInfo {
         let at = *data[offset..offset + size_of::<u32>()].as_array().unwrap();
         let attr: u32 = u32::from_le_bytes(at);
 
-        Some(Self { gfh_type_offset, gfh_common, attr })
+        Some(Self {
+            gfh_type_offset,
+            gfh_common,
+            attr,
+        })
     }
 
     fn header_size(&self) -> usize {
@@ -44,7 +48,7 @@ impl fmt::Display for GfhBlInfo {
 mod tests {
     use std::fs;
 
-    use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_bl_info::GfhBlInfo};
+    use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_bl_info::GfhBlInfo};
 
     #[test]
     fn test_gfh_bl_info_parse() {

@@ -1,4 +1,4 @@
-use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
+use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
 
 #[derive(Debug, Clone, Copy)]
 pub struct GfhBromCfg {
@@ -23,7 +23,6 @@ impl GfhBromCfg {
 impl MtkGfhHeader for GfhBromCfg {
     type Header = GfhBromCfg;
     fn load(data: &[u8], mut offset: usize) -> Option<Self::Header> {
-
         let gfh_type_offset = offset as u32;
 
         let gfh_common = GfhCommonHeader::load(data, offset)?;
@@ -81,7 +80,7 @@ impl MtkGfhHeader for GfhBromCfg {
 mod tests {
     use std::fs;
 
-    use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_brom_cfg::GfhBromCfg};
+    use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_brom_cfg::GfhBromCfg};
 
     #[test]
     fn test_gfh_brom_cfg_parse() {

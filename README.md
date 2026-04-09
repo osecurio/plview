@@ -1,7 +1,10 @@
 # mtkview
 
-Load MTK GFH binaries:
+Will load GFH preloader binarie
+
+Load MTK binaries:
 - Preloaders
+- LK (Todo)
 
 ## Build and install yourself
 
@@ -15,7 +18,7 @@ Load MTK GFH binaries:
 
 ## How to use
 
-After building and installing, open Binary Ninja and select a partition or a raw MTK GFH BootROM binary. The binja view should say `MTK`.
+After building and installing, open Binary Ninja and select a partition or a raw MTK Preloader binary. The binja view should say `MTK`.
 
 ## Screenshot
 

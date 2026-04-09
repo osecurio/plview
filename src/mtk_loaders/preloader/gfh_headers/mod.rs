@@ -1,6 +1,6 @@
 use tracing::{info, warn};
 
-use crate::mtk_loaders::gfh_headers::{
+use crate::mtk_loaders::preloader::gfh_headers::{
     gfh_anti_clone::GfhAntiClone,
     gfh_bl_info::GfhBlInfo,
     gfh_bl_sec_key::GfhBlSecKey,
@@ -65,34 +65,46 @@ impl GfhHeader {
             "gfh_file_info" => {
                 if let Some(g) = self.gfh_file_info {
                     Some(g.get_header_offset())
-                } else { None }
-            },
+                } else {
+                    None
+                }
+            }
             "gfh_bl_info" => {
                 if let Some(g) = self.gfh_bl_info {
                     Some(g.get_header_offset())
-                } else { None }
-            },
+                } else {
+                    None
+                }
+            }
             "gfh_brom_cfg" => {
                 if let Some(g) = self.gfh_brom_cfg {
                     Some(g.get_header_offset())
-                } else { None }
-            },
+                } else {
+                    None
+                }
+            }
             "gfh_bl_sec_key" => {
                 if let Some(g) = self.gfh_bl_sec_key {
                     Some(g.get_header_offset())
-                } else { None }
-            },
+                } else {
+                    None
+                }
+            }
             "gfh_anti_clone" => {
                 if let Some(g) = self.gfh_anti_clone {
                     Some(g.get_header_offset())
-                } else { None }
-            },
+                } else {
+                    None
+                }
+            }
             "gfh_brom_sec_cfg" => {
                 if let Some(g) = self.gfh_brom_sec_cfg {
                     Some(g.get_header_offset())
-                } else { None }
-            },
-            _ => None
+                } else {
+                    None
+                }
+            }
+            _ => None,
         }
     }
 }
@@ -230,7 +242,7 @@ impl MtkGfhHeader for GfhHeader {
 mod tests {
     use std::fs;
 
-    use crate::mtk_loaders::gfh_headers::{GfhHeader, MtkGfhHeader};
+    use crate::mtk_loaders::preloader::gfh_headers::{GfhHeader, MtkGfhHeader};
 
     #[test]
     fn test_gfh_header_parse() {

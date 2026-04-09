@@ -1,4 +1,4 @@
-use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
+use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
 
 #[derive(Debug, Clone, Copy)]
 pub struct GfhAntiClone {
@@ -20,7 +20,6 @@ impl GfhAntiClone {
 impl MtkGfhHeader for GfhAntiClone {
     type Header = GfhAntiClone;
     fn load(data: &[u8], mut offset: usize) -> Option<Self::Header> {
-
         let gfh_type_offset = offset as u32;
 
         let gfh_common = GfhCommonHeader::load(data, offset)?;

@@ -1,4 +1,4 @@
-use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
+use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
 
 #[derive(Debug, Clone, Copy)]
 pub struct GfhBlSecKey {
@@ -22,7 +22,11 @@ impl MtkGfhHeader for GfhBlSecKey {
 
         let pad = *data[offset..offset + 0x20c].as_array().unwrap();
 
-        Some(Self { gfh_type_offset, gfh_common, pad })
+        Some(Self {
+            gfh_type_offset,
+            gfh_common,
+            pad,
+        })
     }
 
     fn header_size(&self) -> usize {

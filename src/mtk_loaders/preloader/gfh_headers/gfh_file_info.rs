@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
+use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
 
 macro_rules! gfh_file_info_fmt {
     () => {
@@ -131,7 +131,7 @@ impl MtkGfhHeader for GfhFileInfo {
         let processed = u32::from_le_bytes(procd);
 
         Some(Self {
-            gfh_type_offset, 
+            gfh_type_offset,
             gfh_common,
             name,
             unused,
@@ -180,7 +180,7 @@ impl fmt::Display for GfhFileInfo {
 mod tests {
     use std::fs;
 
-    use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_file_info::GfhFileInfo};
+    use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_file_info::GfhFileInfo};
 
     #[test]
     fn test_gfh_file_info_parse() {

@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::mtk_loaders::gfh_headers::MtkGfhHeader;
+use crate::mtk_loaders::preloader::gfh_headers::MtkGfhHeader;
 
 /*
 #define GFH_HEADER_MAGIC		0x4D4D4D
@@ -134,7 +134,7 @@ impl MtkGfhHeader for GfhCommonHeader {
 mod tests {
     use std::fs;
 
-    use crate::mtk_loaders::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
+    use crate::mtk_loaders::preloader::gfh_headers::{MtkGfhHeader, gfh_common::GfhCommonHeader};
 
     #[test]
     fn test_gfh_common_parse() {

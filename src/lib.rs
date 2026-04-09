@@ -8,7 +8,8 @@ use tracing::{debug, error, info};
 
 mod mtk_loaders;
 mod mtk_settings;
-mod mtk_view;
+
+pub(crate) type BinaryViewResult<R> = binaryninja::binary_view::Result<R>;
 
 struct LoadCommand;
 
@@ -22,10 +23,10 @@ impl Command for LoadCommand {
             info!("Failed to get read buffer..");
             return;
         };
-        if let Ok(pl) = mtk_loaders::MTKBootRomLoader::new(buf) {
+        if let Ok(pl) = mtk_loaders::preloader::MTKPreloaderLoader::new(buf) {
             info!("{pl}");
         } else {
-            error!("Failed to load buffer with MTKBootRomLoader!");
+            error!("Failed to load buffer with MTKPreloaderLoader!");
         }
     }
     fn valid(&self, _view: &binaryninja::binary_view::BinaryView) -> bool {
@@ -45,7 +46,7 @@ pub extern "C" fn CorePluginInit() -> bool {
     settings.register_group("mtkldr", "MTK Loader");
     //settings.register_setting_json("mtkldr", )
 
-    register_view_type("mtkview", "MTK", mtk_view::MTKLoaderBinaryViewType::new);
+    register_view_type("mtkview", "MTK", mtk_loaders::preloader::view::MTKLoaderBinaryViewType::new);
 
     register_command(
         "mtkview\\Print Load Information",
